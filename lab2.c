@@ -20,26 +20,33 @@ void Port_Init(void);      // Initialize ports for input and output
 void Timer_Init(void);     // Initialize Timer 0 
 void Interrupt_Init(void); //Initialize interrupts
 void Timer0_ISR(void) __interrupt 1;
+void ADC_Init(void);
 unsigned char random(void);
+unsigned char read_AD_input(unsigned char n);
 
 //-----------------------------------------------------------------------------
 // Global Variables
 //-----------------------------------------------------------------------------
 
-__sbit __at 0xB6 LED0; // LED0, associated with Port 3, Pin 6
-__sbit __at 0xB5 LED1; // LED1, associated with Port 3, Pin 5
-__sbit __at 0xB3 BILED1; // BILED0, associated with Port 3, Pin 3
-__sbit __at 0xB4 BILED2; // BILED1, associated with Port 3, Pin 4
-__sbit __at 0xB7 Buzzer; // Buzzer, associated with Port 3, Pin 7
-__sbit __at 0xA0 SS; // Slide switch, associated with Port 2 Pin 0
-__sbit __at 0xB0 PB1; // Push button 1, associated with Port 3, Pin 0
-__sbit __at 0xB1 PB2; // Push button 2, associated with Port 3, Pin 1
+__sbit __at 0xB5 LED0; // LED0, associated with Port 3, Pin 5
+__sbit __at 0xB6 LED1; // LED1, associated with Port 3, Pin 6
+__sbit __at 0xB7 LED2; //LED2, associated with Port 3, Pin 7 
+__sbit __at 0xB2 LED3; //LED3, associated with Port 3, Pin 2
+__sbit __at 0xB3 BILED1; //BILED0, associated with Port 3, Pin 3
+__sbit __at 0xB4 BILED2; //BILED1, associated with Port 3, Pin 4
+__sbit __at 0xA0 SS; //Slide switch, associated with Port 2 Pin 0
+__sbit __at 0xB0 PB1; //Push button 1, associated with Port 3, Pin 0
+__sbit __at 0xB1 PB2; //Push button 2, associated with Port 3, Pin 1
+__sbit __at 0xA2 PB3; //Push button 3, asscoaited with Port 2, Pin 3
+__sbit __at 0xA4 PB4; //Push button 4, associated with Port 2, Pin 4
+
 
 unsigned long Counts = 0;
 unsigned int turns = 0;
 unsigned char oldnum = 10;
 unsigned char rand1;
 unsigned char answers = 0;
+unsigned char result;
 
 //***************
 void main(void)
@@ -56,133 +63,18 @@ void main(void)
                 while the pushbutton is pressed, the BILED is lit while the
                 button is pressed */
     {
-    	if (!SS) //if slideswitch is on
-    	{
-    		if (turns <10)
-    		{
-				LED0 = 1;
-				LED1 = 1;
-    			TR0 = 1; //start timer
-    			rand1 = random(); //create random number
-    			while (rand1 == oldnum){ rand1 = random();}
-    			oldnum = rand1;
-    			printf ("Turn: %d \n\r",turns + 1);
-    			printf("Answers correct: %d\n\r", answers);
-				printf("Answers incorrect: %d\n\r", turns + 1 - answers);
-    			if (rand1 ==0)
-    			{
-    				LED0 = 0;
-    				LED1 = 1;
-    			}
-    			else if (rand1 == 1)
-    			{
-    				LED1 = 0;
-    				LED0 = 1;
-    			}
-    			else 
-    			{
-    				LED0 = 0;
-    				LED1 = 0;
-    			}
-    			while (Counts < 338){}
-    			Counts = 0;
-    			turns++;
-    			if (!PB1 && PB2)		// If only PB1 is pushed
-				{
-					if (rand1 == 0)
-					{
-						BILED1 = 1;	// Turn BILED Green
-						BILED2 = 0;
-						printf("only button2\n\r");
-						answers++;	// increment CORRECT
-					}
-					else
-					{
-						BILED1 = 0; // Turn BILED Red
-						BILED2 = 1;
-						printf("wrong");
-					}
-				}
+    	result = read_AD_input(0);
+        LED0 = 1;
+        LED1 = 1;
+        //LED2 = 1;
+        //LED3 = 1;
 
-				else if (PB1 && !PB2)	// If only PB2 is pushed
-				{
-					if (rand1 == 1)
-					{
-						BILED1 = 1;	// Turn BILED Green
-						BILED2 = 0;
-						printf("only button 1\n\r");
-						answers++;	// increment CORRECT
-					}
-					else
-					{
-						BILED1 = 0; // Turn BILED Red
-						BILED2 = 1;
-						printf("wrong\n\r");
-					}						
-				}
-
-				else if (!PB1 && !PB2)	// If both PB1 and PB2 are pushed
-				{
-					if (rand1 == 2)
-					{
-						BILED1 = 1;	// Turn BILED Green
-						BILED2 = 0;
-						printf("both buttons\n\r");
-						answers++;	// increment CORRECT
-					}
-					else
-					{
-						BILED1 = 0; // Turn BILED Red
-						BILED2 = 1;
-						printf("wrong\n\r");
-					}
-				}
-
-				else	// If neither PB1 or PB2 are pushed
-				{
-					BILED1 = 0; // Turn BILED Red
-					BILED2 = 1;
-					printf("didn't press nothin\n\r");
-				}
-
-    		}
-    		else 
-    		{
-    			TR0 = 0; //stop timer
-				BILED1 = 0;
-				BILED2 = 1;
-				LED0 = 0;
-				LED1 = 0;
-    		} 
-    	}
-    	else //if slideswitch is off 
-    	{
-    		if (turns < 10)
-    		{
-    			TR0 = 0;
-    			BILED1 = 1;
-    			BILED2 = 1;
-    			LED0 = 1;
-    			LED1 = 1;
-    		}
-    		else 
-    		{
-    			TR0 = 0;
-    			Counts = 0;
-    			TMR0 = 0;
-    			BILED1 = 1;
-    			BILED2 = 1;
-    			LED0 = 1;
-    			LED1 = 1;
-    			turns = 0;
-    			answers = 0;
-    		}
-    	}
+        if(!SS){}
     }
 }
 
 //***************
-void Port_Init(void)
+void Port_Init(void) //UNFINISHED LET MICHAEL TAKE OVER THIS
 {
  // Port 3
    P3MDOUT |= 0xF8 ; // set Port 3 output pins to push-pull mode 
@@ -212,6 +104,15 @@ void Timer_Init(void)
 
 }
 
+//configure as analog input
+void ADC_Init(void)
+{
+    REF0CN = 0X03; //Set Vref to use internal reference voltage
+
+    ADC1CN = 0x80; // Enable ADC1
+    ADC1CF = 0x01; //Set a gain of 1
+
+}
 
 //timer interrupt
 void Timer0_ISR(void) __interrupt 1
@@ -220,8 +121,19 @@ void Timer0_ISR(void) __interrupt 1
 }
 
 
-/*return a random integer number between 0 and 2*/
+/*return a random integer number between 0 and 3*/
 unsigned char random(void)
 {
-    return (rand()%3);  // returns random value between 0-2
+    return (rand()%4);  // returns random value between 0-2
+}
+
+unsigned char read_AD_input (unsigned char n) //UNFINISHED
+{
+    AMX1SL = n; // Set P1.N as the analog input for ADC1
+    ADC1CN = ADC1CN & ~0x20;
+    ADC1CN = ADC1CN | 0x10;
+
+    while ((ADC1CN & 0x20) == 0x00);
+
+    return ADC1;
 }
