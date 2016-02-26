@@ -77,14 +77,14 @@ void main(void)
 void Port_Init(void) //UNFINISHED LET MICHAEL TAKE OVER THIS
 {
  // Port 3
-   P3MDOUT |= 0xF8 ; // set Port 3 output pins to push-pull mode 
-   P3MDOUT &= 0xFC; // set Port 3 input pins to open drain mode 
+   P3MDOUT &= 0x00 ; // set Port 3 output pins to push-pull mode 
+   P3MDOUT |= 0xFC; // set Port 3 input pins to open drain mode 
    P3 |= ~0xFC; // set Port 3 input pins to high impedance state aka setting pins 2 and 5 to 1
 
 // Port 2
-   P2MDOUT |= 0x01; 
-   P2MDOUT &= 0xFE; //set Port 2 pin 1 to open drain mode or input 
-   P2 |= ~0xFE;      //set Port 2 input pins to high impedance
+   P2MDOUT |= 0x00; 
+   P2MDOUT &= 0x00; //set Port 2 pin 1 to open drain mode or input 
+   P2 |= ~0x00;      //set Port 2 inpubt pins to high impedance
 }
 
 void Interrupt_Init(void)
