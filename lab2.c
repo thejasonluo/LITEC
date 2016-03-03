@@ -1,7 +1,7 @@
 /*  Names: Jason Luo, Michael Cuozzo
     Section:3
-    Date: 2/17/15
-    File name: lab1-2
+    Date: 3/3/15
+    File name: Lab 2
     Description:
 */
 /*
@@ -21,8 +21,13 @@ void Timer_Init(void);     // Initialize Timer 0
 void Interrupt_Init(void); //Initialize interrupts
 void Timer0_ISR(void) __interrupt 1;
 void ADC_Init(void);
+void Blink_Pause(void);
+void End_Won(unsigned char n);
+void End_Lost(unsigned char n);
 unsigned char random(void);
 unsigned char read_AD_input(unsigned char n);
+unsigned char check_PB(unsigned char n);
+
 
 //-----------------------------------------------------------------------------
 // Global Variables
@@ -39,15 +44,22 @@ __sbit __at 0xB0 PB1; //Push button 1, associated with Port 3, Pin 0
 __sbit __at 0xB1 PB2; //Push button 2, associated with Port 3, Pin 1
 __sbit __at 0xA3 PB3; //Push button 3, asscoaited with Port 2, Pin 3
 __sbit __at 0xA4 PB4; //Push button 4, associated with Port 2, Pin 4
+//__sbit __at 0xA_ Buzzer; //Buzzer, associated with Port 2, Pin _
 
 
 unsigned long Counts = 0;
-unsigned int turns = 0;
 unsigned char oldnum = 10;
 unsigned char rand1;
-unsigned char answers = 0;
 unsigned char result;
-int colors[10];
+unsigned char rounds = 0;
+unsigned char turns = 0;
+unsigned char next = 1; //to determine whether to go to next LED
+float on_time;
+float off_time;
+char colors[10];
+char points_tracker[3];
+unsigned char points = 0;
+unsigned char i,j;
 
 //***************
 void main(void)
@@ -65,28 +77,185 @@ void main(void)
                 button is pressed */
     {
     	//result = read_AD_input(0);
-		LED0 = 1;
-        LED1 = 1;
-        LED2 = 1;
-        LED3 = 1;
-		BILED1 = 1;
-		BILED2 = 0;
-		if (!PB1)
-		{
-		LED0 = 0;
-		}
-		else if (!PB2)
-		{
-		LED1 = 0;
-		}
-		else if (!PB3)
-		{
-		LED2 = 0;
-		}
-		else if (!PB4)
-		{
-		LED3 = 0;
-		}
+      //on_time = (result * 5) + 200;
+      //off_time = on_time / 2 ;
+      
+      /* Generates random numbers and inputs into the array */
+      for (i = 0; i< 10; i++)
+      {
+        colors[i] = random();
+      }
+
+      //Reset all
+  		LED0 = 1;
+      LED1 = 1;
+      LED2 = 1;
+      LED3 = 1;
+      //Buzzer = 1;
+
+
+      TR0 = 1; //turn timer on
+
+
+      if (!SS) //while switch is turned on or toggled
+      {
+        while (rounds < 3) //while rounds
+        {
+          while (turns < 3) // switches turns
+          {
+
+            /*indicates Players */
+            if (turns == 0) //indicates Player 1
+            {
+              BILED1 = 0; //BILED OFF
+              BILED2 = 0;
+              printf("Player 1, don't mess up");
+            }
+            else if (turns == 1) //indicates Player 2
+            {
+              BILED1 = 0; //RED BILED
+              BILED2 = 1;
+              printf("Player 2, first is the worst and second is the best");
+            }
+            else //indicates Player 3
+            {
+              BILED1 = 1; //GREEN BILED
+              BILED2 = 0; 
+              printf("Player 3, lol good luck");
+            }
+
+            /* goes through each output and checks if player is correct*/
+            for (j = 0; j < 10; j++)
+            {
+
+              /* checks to see if LED and button pressed matches */
+              while(next)
+              {
+
+                /*turns on the LED depending on the array inputs in array */
+                if (colors[j] == 0) //if it is 0 light LED0
+                {
+                  LED0 = 0;
+                  Counts = 0;
+                  while (Counts < on_time)
+                  {
+                    if (!PB1 && PB2 && PB3 && PB4) //if only PB1
+                    {
+                      points++;
+                    }
+                    else //if user doesn't push right push button
+                    {
+                      next = 0;
+                      break;
+                    }
+                  }
+                  LED0 = 1;
+                }
+                else if (colors[j] == 1) //if it is 1 light LED1
+                {
+                  LED1 = 0;
+                  Counts = 0;
+                  while (Counts < on_time)
+                  {
+                    if (PB1 && !PB2 && PB3 && PB4) //if only PB2
+                    {
+                      points++;
+                    }
+                    else //if user doesn't push right push button
+                    {
+                      next = 0;
+                      break;
+                    }
+                  }
+                  LED1 = 1;
+                } 
+                else if (colors[j] == 2) //if it is 2 light LED2
+                {
+                  LED2 = 0;
+                  Counts = 0;
+                  while (Counts < on_time)
+                  {
+                    if (PB1 && PB2 && !PB3 && PB4) //if only PB3
+                    {
+                      points++;
+                    }
+                    else //if user doesn't push right push button
+                    {
+                      next = 0;
+                      break;
+                    }
+                  }
+                  LED3 = 1;
+                }
+                else 
+                {
+                  LED3 = 0;
+                  Counts = 0;
+                  while (Counts < on_time)
+                  {
+                    if (PB1 && PB2 && PB3 && !PB4) //if PB4
+                    {
+                      points++;
+                    }
+                    else //if user doesn't push right push button
+                    {
+                      next = 0;
+                      break;
+                    }
+                  }
+                  LED3 = 1;
+                }
+
+                Counts = 0;
+                break;
+
+              }
+
+              //if Player gets answer wrong breaks out of FOR loop
+              if (next == 0)
+              {
+                break;
+              }
+            }
+
+             if (next == 1) //if player successfully gets all 10 of them right 
+             {
+              End_Won(turns);
+             }
+             else //if player gets at least one wrong
+             {
+              End_Lost(turns);
+              }
+            turns++; //next player's turn
+          }
+          rounds++; //next round
+          turns = 0; //restarts with player one's turn
+        }
+      }
+      else
+      {
+
+        /* doesn't work yet */
+        if (rounds < 3)
+        {
+          Blink_Pause(); /*BILED alternating red/green at frequency about 1 HZ */
+          TR0 = 0;
+          TR0 = 1;
+          Counts = 0;
+          TR0 = 0;
+        }
+        else
+        {
+          Blink_Pause();  /*BILED alternating red/green at frequency about 1 HZ */
+          turns = 0;
+          Counts = 0;
+          TMR0 = 0;
+          rounds = 0;
+
+        }
+      }
+
+
         //printf("Ready to start? \r\n");
         //while(SS){};
 
@@ -96,23 +265,23 @@ void main(void)
 //***************
 void Port_Init(void) 
 {
- // Port 3
+  // Port 3
  	P3MDOUT |= 0xFC;
 	P3MDOUT &= 0xFC;
 	P3 |= ~0xFC;
-   //P3MDOUT |= 0xE4 ; // set Port 3 output pins to push-pull mode 
-   //P3MDOUT &= 0xE4; // set Port 3 input pins to open drain mode 
-   //P3 |= ~0xE4; // set Port 3 input pins to high impedance state aka setting pins 2 and 5 to 1
+  //P3MDOUT |= 0xE4 ; // set Port 3 output pins to push-pull mode 
+  //P3MDOUT &= 0xE4; // set Port 3 input pins to open drain mode 
+  //P3 |= ~0xE4; // set Port 3 input pins to high impedance state aka setting pins 2 and 5 to 1
 
-// Port 2
-   P2MDOUT &= 0xD5;
-   P2 |= ~0xD5;
-   //P2MDOUT |= 0x01; // set Port 2 output pins to push-pull mode
-   //P2MDOUT &= 0xFE; //set Port 2 pin 1 to open drain mode or input 
-   //P2 |= ~0xFE;  //set Port 2 input pins to high impedance
+  // Port 2
+  P2MDOUT &= 0xD5;
+  P2 |= ~0xD5;
+  //P2MDOUT |= 0x01; // set Port 2 output pins to push-pull mode
+  //P2MDOUT &= 0xFE; //set Port 2 pin 1 to open drain mode or input 
+  //P2 |= ~0xFE;  //set Port 2 input pins to high impedance
 
-// Port 1
-	P1MDOUT |= 0x01; //set Port 1 output pins to push-pull mode
+  // Port 1
+  P1MDOUT |= 0x01; //set Port 1 output pins to push-pull mode
 }
 
 void Interrupt_Init(void)
@@ -129,32 +298,31 @@ void Timer_Init(void)
     TMOD |= 0x01;   // Timer0 in mode 1
     TR0 = 0;  // Stop Timer0
     TMR0 = 0;  // Clear high & low byte of T0
-
 }
 
-//configure as analog input
+/*configure as analog input */
 void ADC_Init(void)
 {
     REF0CN = 0X03; //Set Vref to use internal reference voltage
 
     ADC1CN = 0x80; // Enable ADC1
     ADC1CF = 0x01; //Set a gain of 1
-
 }
 
-//timer interrupt
+/*timer interrupt*/
 void Timer0_ISR(void) __interrupt 1
 {
     Counts++;
 }
 
 
-/*return a random integer number between 0 and 3*/
+/*returns a random integer number between 0 and 3*/
 unsigned char random(void)
 {
-    return (rand()%4);  // returns random value between 0-2
+    return (rand() % 4);  // returns random value between 0-3
 }
 
+/* returns A/D result */
 unsigned char read_AD_input (unsigned char n) 
 {
     AMX1SL = n; // Set P1.N as the analog input for ADC1
@@ -164,4 +332,79 @@ unsigned char read_AD_input (unsigned char n)
     while ((ADC1CN & 0x20) == 0x00); //Wait for the conversion to be complete
 
     return ADC1; //return A/D conversion result
+}
+
+/* Blinks LED */
+void Blink_Pause(void) 
+{
+  Counts = 0;
+  BILED1 = 0; // turns BILED red 
+  BILED2 = 1;
+  while (Counts < 338){} //wait one second
+  BILED1 = 1; // turns BILED green 
+  BILED2 = 0;
+  Counts = 0;
+}
+
+/* Displays scores and blinks LED 3 times, input is the Player*/
+void End_Won(unsigned char n)
+{
+  /* display score of Player*/
+  printf("Score of Player %c: %c points\n\r", n+1 , points_tracker[n]);
+
+  /* Blinks LED 3 times */
+  for (i = 0; i < 3; i++)
+  {
+    LED0 = 0;
+    LED1 = 0;
+    LED2 = 0;
+    LED3 = 0;
+    Counts = 0;
+    while (Counts < 169){} //waits for half a second
+    LED0 = 1;
+    LED1 = 1;
+    LED2 = 1;
+    LED3 = 1;
+    Counts = 0;
+    while (Counts < 169){} //waits for half a second 
+    Counts = 0;
+  }
+
+}
+
+/* Displays scores and sounds buzzer, input is the player*/
+void End_Lost(unsigned char n)
+{
+  /* display score of Player*/
+  printf("Score of Player %c: %c points\n\r", n+1 , points_tracker[n]);
+  //Buzzer = 0;
+}
+
+/* function checks to see if pushbutton pushed matches output*/
+unsigned char check_PB(unsigned char n)
+{
+  if (n == 0 && !PB1) 
+  {
+    points++; //increment points
+    return 1; //return TRUE
+  }
+  else if (n == 1 && !PB2)
+  {
+    points++; //increment points
+    return 1; //return TRUE
+  }
+  else if (n == 2 && !PB3)
+  {
+    points++; //increment points
+    return 1; //return TRUE
+  }
+  else if (n == 3 && !PB4)
+  {
+    points++; //increment points
+    return 1; //return TRUE
+  }
+  else 
+  {
+    return 0; //return FALSE
+  }
 }
