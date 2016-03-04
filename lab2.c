@@ -1,7 +1,7 @@
 /*  Names: Jason Luo, Michael Cuozzo
     Section:3
-    Date: 3/3/15
-    File name: Lab 2
+    Date: 2/17/15
+    File name: lab1-2
     Description:
 */
 /*
@@ -26,7 +26,6 @@ void End_Won(unsigned char n);
 void End_Lost(unsigned char n);
 unsigned char random(void);
 unsigned char read_AD_input(unsigned char n);
-unsigned char check_PB(unsigned char n);
 
 
 //-----------------------------------------------------------------------------
@@ -54,11 +53,11 @@ unsigned char result;
 unsigned char rounds = 0;
 unsigned char turns = 0;
 unsigned char next = 1; //to determine whether to go to next LED
-float on_time;
-float off_time;
-char colors[10];
-char points_tracker[3];
-unsigned char points = 0;
+unsigned int on_time;
+unsigned int off_time;
+unsigned char colors[10];
+unsigned int points_tracker[3] = {0, 0, 0};
+unsigned int points = 0;
 unsigned char i,j;
 
 //***************
@@ -66,9 +65,9 @@ void main(void)
 {
     Sys_Init();      // System Initialization
     Port_Init();     // Initialize ports 2 and 3 
-    Interrupt_Init();
+    Interrupt_Init();// Initialize Interrupts
     Timer_Init();    // Initialize Timer 0 
-
+    ADC_Init();
     putchar(' ');    // the quote fonts may not copy correctly into SiLabs IDE
     printf("Start\r\n");
 
@@ -76,18 +75,12 @@ void main(void)
                 while the pushbutton is pressed, the BILED is lit while the
                 button is pressed */
     {
-    	//result = read_AD_input(0);
-      //on_time = (result * 5) + 200;
-      //off_time = on_time / 2 ;
+      result = read_AD_input(0);
+      on_time = ((result * 5) + 200) / 2.96;
+      off_time = on_time / 2 ;
       
-      /* Generates random numbers and inputs into the array */
-      for (i = 0; i< 10; i++)
-      {
-        colors[i] = random();
-      }
-
       //Reset all
-  		LED0 = 1;
+  	  LED0 = 1;
       LED1 = 1;
       LED2 = 1;
       LED3 = 1;
@@ -96,141 +89,148 @@ void main(void)
 
       TR0 = 1; //turn timer on
 
-
       if (!SS) //while switch is turned on or toggled
       {
-        while (rounds < 3) //while rounds
-        {
-          while (turns < 3) // switches turns
+        
+          while (rounds < 3) //while rounds
           {
-
-            /*indicates Players */
-            if (turns == 0) //indicates Player 1
+            while (turns < 3) // switches turns
             {
-              BILED1 = 0; //BILED OFF
-              BILED2 = 0;
-              printf("Player 1, don't mess up");
-            }
-            else if (turns == 1) //indicates Player 2
-            {
-              BILED1 = 0; //RED BILED
-              BILED2 = 1;
-              printf("Player 2, first is the worst and second is the best");
-            }
-            else //indicates Player 3
-            {
-              BILED1 = 1; //GREEN BILED
-              BILED2 = 0; 
-              printf("Player 3, lol good luck");
-            }
-
-            /* goes through each output and checks if player is correct*/
-            for (j = 0; j < 10; j++)
-            {
-
-              /* checks to see if LED and button pressed matches */
-              while(next)
+              next = 1;
+              /* Generates array for players*/
+              for (i = 0; i< 10; i++)
               {
+                colors[i] = random();
+              }
 
-                /*turns on the LED depending on the array inputs in array */
-                if (colors[j] == 0) //if it is 0 light LED0
-                {
-                  LED0 = 0;
-                  Counts = 0;
-                  while (Counts < on_time)
-                  {
-                    if (!PB1 && PB2 && PB3 && PB4) //if only PB1
-                    {
-                      points++;
-                    }
-                    else //if user doesn't push right push button
-                    {
-                      next = 0;
-                      break;
-                    }
-                  }
-                  LED0 = 1;
-                }
-                else if (colors[j] == 1) //if it is 1 light LED1
-                {
-                  LED1 = 0;
-                  Counts = 0;
-                  while (Counts < on_time)
-                  {
-                    if (PB1 && !PB2 && PB3 && PB4) //if only PB2
-                    {
-                      points++;
-                    }
-                    else //if user doesn't push right push button
-                    {
-                      next = 0;
-                      break;
-                    }
-                  }
-                  LED1 = 1;
-                } 
-                else if (colors[j] == 2) //if it is 2 light LED2
-                {
-                  LED2 = 0;
-                  Counts = 0;
-                  while (Counts < on_time)
-                  {
-                    if (PB1 && PB2 && !PB3 && PB4) //if only PB3
-                    {
-                      points++;
-                    }
-                    else //if user doesn't push right push button
-                    {
-                      next = 0;
-                      break;
-                    }
-                  }
-                  LED3 = 1;
-                }
-                else 
-                {
-                  LED3 = 0;
-                  Counts = 0;
-                  while (Counts < on_time)
-                  {
-                    if (PB1 && PB2 && PB3 && !PB4) //if PB4
-                    {
-                      points++;
-                    }
-                    else //if user doesn't push right push button
-                    {
-                      next = 0;
-                      break;
-                    }
-                  }
-                  LED3 = 1;
-                }
-
+              /*indicates Players */
+              if (turns == 0) //indicates Player 1
+              {
+                BILED1 = 0; //BILED OFF
+                BILED2 = 0;
+                printf("Player 1, don't mess up\n\r");
                 Counts = 0;
-                break;
-
+                while (Counts < 338){}
               }
-
-              //if Player gets answer wrong breaks out of FOR loop
-              if (next == 0)
+              else if (turns == 1) //indicates Player 2
               {
-                break;
+                BILED1 = 0; //RED BILED
+                BILED2 = 1;
+                printf("Player 2, first is the worst and second is the best\n\r");
+                Counts = 0;
+                while (Counts < 338){}
               }
-            }
+              else //indicates Player 3
+              {
+                BILED1 = 1; //GREEN BILED
+                BILED2 = 0; 
+                printf("Player 3, lol good luck\n\r");
+                Counts = 0;
+                while (Counts < 338){}
+              }
 
-             if (next == 1) //if player successfully gets all 10 of them right 
-             {
-              End_Won(turns);
-             }
-             else //if player gets at least one wrong
-             {
-              End_Lost(turns);
+              points = 0; //resets points to 0
+
+              /* goes through each output and checks if player is correct*/
+              for (j = 0; j < 10; j++)
+              {
+
+                /* checks to see if LED and button pressed matches */
+                while(next)
+                {
+                  /*turns on the LED depending on the array inputs in array */
+                  if (colors[j] == 0) //if it is 0 light LED0
+                  {
+                    LED0 = 0;
+                    Counts = 0;
+                    next = 0;
+                    while (Counts < on_time)
+                    {
+                      if (!PB1 && PB2 && PB3 && PB4) //if only PB1
+                      {
+                        points = points + j + 1;
+                        next = 1;
+                        break;
+                      }
+                    }
+                    LED0 = 1;
+                  }
+                  else if (colors[j] == 1) //if it is 1 light LED1
+                  {
+                    LED1 = 0;
+                    Counts = 0;
+                    next = 0;
+                    while (Counts < on_time)
+                    {
+                      if (PB1 && !PB2 && PB3 && PB4) //if only PB2
+                      {
+                        points = points + j + 1;
+                        next = 1;
+                        break;
+                      }
+                    }
+                    LED1 = 1;
+                  } 
+                  else if (colors[j] == 2) //if it is 2 light LED2
+                  {
+                    LED2 = 0;
+                    Counts = 0;
+                    next = 0;
+                    while (Counts < on_time)
+                    {
+                      if (PB1 && PB2 && !PB3 && PB4) //if only PB3
+                      {
+                        points = points + j + 1;
+                        next = 1;
+                        break;
+                      }
+                    }
+                    LED2 = 1;
+                  }
+                  else 
+                  {
+                    LED3 = 0;
+                    Counts = 0;
+                    next = 0;
+                    while (Counts < on_time)
+                    {
+                      if (PB1 && PB2 && PB3 && !PB4) //if PB4
+                      {
+                        points = points + j + 1;
+                        next = 1;
+                        break;
+                      }
+                    }
+                    LED3 = 1;
+                  }
+                  break;
+
+                }
+
+                //if Player gets answer wrong breaks out of FOR loop
+                if (next == 0)
+                {
+                  break;
+                }
+                
+                Counts = 0;
+                while (Counts < off_time){}
               }
-            turns++; //next player's turn
+
+              points_tracker[turns] = points_tracker[turns] + points;
+              if (next == 1) //if player successfully gets all 10 of them right 
+              {
+               End_Won(turns);
+              }
+              else //if player gets at least one wrong
+              {
+               End_Lost(turns);
+              }
+              turns++; //next player's turn
+            }
+            rounds++; //next round
+            turns = 0; //restarts with player one's turn
           }
-          rounds++; //next round
-          turns = 0; //restarts with player one's turn
-        }
       }
       else
       {
@@ -243,6 +243,7 @@ void main(void)
           TR0 = 1;
           Counts = 0;
           TR0 = 0;
+          turns++;
         }
         else
         {
@@ -251,15 +252,17 @@ void main(void)
           Counts = 0;
           TMR0 = 0;
           rounds = 0;
-
+          points_tracker[0] = 0;
+          points_tracker[1] = 0;
+          points_tracker[2] = 0;
         }
-      }
-
-
-        //printf("Ready to start? \r\n");
-        //while(SS){};
-
+      } 
+      TR0 = 0; // turn timer off
+      //printf("Ready to start? \r\n");
+      //printf("on_time in overflows: %d", on_time);
+      //printf("off time in overflows: %d", off_time);
     }
+
 }
 
 //***************
@@ -281,7 +284,9 @@ void Port_Init(void)
   //P2 |= ~0xFE;  //set Port 2 input pins to high impedance
 
   // Port 1
-  P1MDOUT |= 0x01; //set Port 1 output pins to push-pull mode
+  P1MDIN &= ~0x01;
+  P1MDOUT &= ~0x01;
+  P1 |= 0x01; //set Port 1 output pins to push-pull mode
 }
 
 void Interrupt_Init(void)
@@ -303,10 +308,10 @@ void Timer_Init(void)
 /*configure as analog input */
 void ADC_Init(void)
 {
-    REF0CN = 0X03; //Set Vref to use internal reference voltage
+    REF0CN = 0x03; //Set Vref to use internal reference voltage
 
     ADC1CN = 0x80; // Enable ADC1
-    ADC1CF = 0x01; //Set a gain of 1
+    ADC1CF |= 0x01; //Set a gain of 1
 }
 
 /*timer interrupt*/
@@ -326,8 +331,8 @@ unsigned char random(void)
 unsigned char read_AD_input (unsigned char n) 
 {
     AMX1SL = n; // Set P1.N as the analog input for ADC1
-    ADC1CN = ADC1CN & ~0x20; //Clear flag from previous ADC1 conversion
-    ADC1CN = ADC1CN | 0x10; //Start an A/D cconversion
+    ADC1CN &= ~0x20; //Clear flag from previous ADC1 conversion
+    ADC1CN |= 0x10; //Start an A/D cconversion
 
     while ((ADC1CN & 0x20) == 0x00); //Wait for the conversion to be complete
 
@@ -337,10 +342,11 @@ unsigned char read_AD_input (unsigned char n)
 /* Blinks LED */
 void Blink_Pause(void) 
 {
-  Counts = 0;
+  while (Counts < 169){} //wait half a second
   BILED1 = 0; // turns BILED red 
   BILED2 = 1;
-  while (Counts < 338){} //wait one second
+  Counts = 0;
+  while (Counts < 169){} //wait half a second
   BILED1 = 1; // turns BILED green 
   BILED2 = 0;
   Counts = 0;
@@ -350,7 +356,7 @@ void Blink_Pause(void)
 void End_Won(unsigned char n)
 {
   /* display score of Player*/
-  printf("Score of Player %c: %c points\n\r", n+1 , points_tracker[n]);
+  printf("Score of Player %d: %d points\n\r", n+1 , points_tracker[n]);
 
   /* Blinks LED 3 times */
   for (i = 0; i < 3; i++)
@@ -376,35 +382,6 @@ void End_Won(unsigned char n)
 void End_Lost(unsigned char n)
 {
   /* display score of Player*/
-  printf("Score of Player %c: %c points\n\r", n+1 , points_tracker[n]);
+  printf("Score of Player %d: %d points\n\r", n+1 , points_tracker[n]);
   //Buzzer = 0;
-}
-
-/* function checks to see if pushbutton pushed matches output*/
-unsigned char check_PB(unsigned char n)
-{
-  if (n == 0 && !PB1) 
-  {
-    points++; //increment points
-    return 1; //return TRUE
-  }
-  else if (n == 1 && !PB2)
-  {
-    points++; //increment points
-    return 1; //return TRUE
-  }
-  else if (n == 2 && !PB3)
-  {
-    points++; //increment points
-    return 1; //return TRUE
-  }
-  else if (n == 3 && !PB4)
-  {
-    points++; //increment points
-    return 1; //return TRUE
-  }
-  else 
-  {
-    return 0; //return FALSE
-  }
 }
