@@ -43,7 +43,7 @@ __sbit __at 0xB0 PB1; //Push button 1, associated with Port 3, Pin 0
 __sbit __at 0xB1 PB2; //Push button 2, associated with Port 3, Pin 1
 __sbit __at 0xA3 PB3; //Push button 3, asscoaited with Port 2, Pin 3
 __sbit __at 0xA4 PB4; //Push button 4, associated with Port 2, Pin 4
-//__sbit __at 0xA_ Buzzer; //Buzzer, associated with Port 2, Pin _
+__sbit __at 0xA6 Buzzer; //Buzzer, associated with Port 2, Pin 6
 
 
 unsigned long Counts = 0;
@@ -67,7 +67,7 @@ void main(void)
     Port_Init();     // Initialize ports 2 and 3 
     Interrupt_Init();// Initialize Interrupts
     Timer_Init();    // Initialize Timer 0 
-    ADC_Init();
+    ADC_Init();      // Initialize A/D converter
     putchar(' ');    // the quote fonts may not copy correctly into SiLabs IDE
     printf("Start\r\n");
 
@@ -84,17 +84,26 @@ void main(void)
       LED1 = 1;
       LED2 = 1;
       LED3 = 1;
-      //Buzzer = 1;
-
+      Buzzer = 1;
 
       TR0 = 1; //turn timer on
 
-      if (!SS) //while switch is turned on or toggled
+
+      if (!SS) //while switch is turned on
       {
-        
-          while (rounds < 3) //while rounds
+        if (rounds == 3 && (!PB1 || !PB2 || !PB3 || !PB4)) //if toggled while rounds > 3
           {
-            while (turns < 3) // switches turns
+            turns = 0;
+            Counts = 0;
+            TMR0 = 0;
+            rounds = 0;
+            points_tracker[0] = 0;
+            points_tracker[1] = 0;
+            points_tracker[2] = 0;
+          }
+        while ((rounds < 3) && !SS) //while rounds
+        {
+            while ((turns < 3) && !SS) // switches turns
             {
               next = 1;
               /* Generates array for players*/
@@ -120,7 +129,7 @@ void main(void)
                 Counts = 0;
                 while (Counts < 338){}
               }
-              else //indicates Player 3
+              else if (turns == 2)//indicates Player 3
               {
                 BILED1 = 1; //GREEN BILED
                 BILED2 = 0; 
@@ -152,6 +161,13 @@ void main(void)
                         next = 1;
                         break;
                       }
+                      else
+                      {
+                        //Buzzer = 0;
+                        //Counts = 0;
+                        //while (Counts < 169);
+                        //Buzzer = 1;
+                      }
                     }
                     LED0 = 1;
                   }
@@ -167,6 +183,13 @@ void main(void)
                         points = points + j + 1;
                         next = 1;
                         break;
+                      }
+                      else
+                      {
+                        //Buzzer = 0;
+                        //Counts = 0;
+                        //while (Counts < 169);
+                        //Buzzer = 1;
                       }
                     }
                     LED1 = 1;
@@ -184,6 +207,13 @@ void main(void)
                         next = 1;
                         break;
                       }
+                      else
+                      {
+                        //Buzzer = 0;
+                        //Counts = 0;
+                        //while (Counts < 169);
+                        //Buzzer = 1;
+                      }
                     }
                     LED2 = 1;
                   }
@@ -199,6 +229,13 @@ void main(void)
                         points = points + j + 1;
                         next = 1;
                         break;
+                      }
+                      else
+                      {
+                        //Buzzer = 0;
+                        //Counts = 0;
+                        //while (Counts < 169);
+                        //Buzzer = 1;
                       }
                     }
                     LED3 = 1;
@@ -228,22 +265,24 @@ void main(void)
               }
               turns++; //next player's turn
             }
-            rounds++; //next round
-            turns = 0; //restarts with player one's turn
-          }
+
+            if (!SS)
+            {
+              rounds++; //next round
+              turns = 0; //restarts with player one's turn
+            }
+      }
       }
       else
       {
-
-        /* doesn't work yet */
-        if (rounds < 3)
+        if (rounds < 3) //if rounds < 3 and game already started
         {
           Blink_Pause(); /*BILED alternating red/green at frequency about 1 HZ */
           TR0 = 0;
           TR0 = 1;
           Counts = 0;
           TR0 = 0;
-          turns++;
+
         }
         else
         {
@@ -277,8 +316,9 @@ void Port_Init(void)
   //P3 |= ~0xE4; // set Port 3 input pins to high impedance state aka setting pins 2 and 5 to 1
 
   // Port 2
-  P2MDOUT &= 0xD5;
-  P2 |= ~0xD5;
+  P2MDOUT |= 0x40; //Set Port 2 output pins to push-pull mode
+  P2MDOUT &= 0xD5; //Set Port 2 input pins to open-drain
+  P2 |= ~0xD5; //Set Port 3 input pins to high impedance
   //P2MDOUT |= 0x01; // set Port 2 output pins to push-pull mode
   //P2MDOUT &= 0xFE; //set Port 2 pin 1 to open drain mode or input 
   //P2 |= ~0xFE;  //set Port 2 input pins to high impedance
@@ -297,7 +337,6 @@ void Interrupt_Init(void)
 //***************
 void Timer_Init(void)
 {
-
     CKCON |= 0x08;  // Timer0 uses SYSCLK as source
     TMOD &= 0xF0;   // clear the 4 least significant bits
     TMOD |= 0x01;   // Timer0 in mode 1
@@ -356,7 +395,7 @@ void Blink_Pause(void)
 void End_Won(unsigned char n)
 {
   /* display score of Player*/
-  printf("Score of Player %d: %d points\n\r", n+1 , points_tracker[n]);
+  printf("Score of Player %d: %d points\n\r\n", n+1 , points_tracker[n]);
 
   /* Blinks LED 3 times */
   for (i = 0; i < 3; i++)
@@ -382,6 +421,6 @@ void End_Won(unsigned char n)
 void End_Lost(unsigned char n)
 {
   /* display score of Player*/
-  printf("Score of Player %d: %d points\n\r", n+1 , points_tracker[n]);
+  printf("Score of Player %d: %d points\n\r\n", n+1 , points_tracker[n]);
   //Buzzer = 0;
 }
