@@ -52,13 +52,15 @@ unsigned char rand1;
 unsigned char result;
 unsigned char rounds = 0;
 unsigned char turns = 0;
-unsigned char next = 1; //to determine whether to go to next LED
+unsigned char next = 0; //to determine whether to go to next LED
 unsigned int on_time;
 unsigned int off_time;
 unsigned char colors[10];
 unsigned int points_tracker[3] = {0, 0, 0};
 unsigned int points = 0;
-unsigned char i,j;
+unsigned char i,j,k;
+unsigned char store;
+unsigned char new = 1;
 
 //***************
 void main(void)
@@ -74,7 +76,7 @@ void main(void)
     while (1) /* the following loop prints the number of overflows that occur
                 while the pushbutton is pressed, the BILED is lit while the
                 button is pressed */
-    {
+    { 
       result = read_AD_input(0);
       on_time = ((result * 5) + 200) / 2.96;
       off_time = on_time / 2 ;
@@ -88,19 +90,20 @@ void main(void)
 
       TR0 = 1; //turn timer on
 
-
-      if (!SS) //while switch is turned on
+      while (SS)
       {
-        if (rounds == 3 && (!PB1 || !PB2 || !PB3 || !PB4)) //if toggled while rounds > 3
-          {
-            turns = 0;
-            Counts = 0;
-            TMR0 = 0;
-            rounds = 0;
-            points_tracker[0] = 0;
-            points_tracker[1] = 0;
-            points_tracker[2] = 0;
-          }
+        Blink_Pause();
+        new = 0;
+      }
+
+      if (!SS) //if switch is on 
+      {
+        if (new == 1) // if it is a new game
+        {
+          while (!SS){printf("switch is on\n\r");} //while switch is on wait until you turn off
+          while (SS){Blink_Pause(); printf("switch is off\n\r");}  // while switch is off wait until you turn on
+          new = 0;
+        }
         while ((rounds < 3) && !SS) //while rounds
         {
             while ((turns < 3) && !SS) // switches turns
@@ -112,6 +115,10 @@ void main(void)
                 colors[i] = random();
               }
 
+              for (i = 0; i < 10; i++)
+              {
+                printf("%u", colors[i]);
+              }
               /*indicates Players */
               if (turns == 0) //indicates Player 1
               {
@@ -141,120 +148,132 @@ void main(void)
               points = 0; //resets points to 0
 
               /* goes through each output and checks if player is correct*/
-              for (j = 0; j < 10; j++)
+              j = 0;
+              while (j < 10 && !SS)
               {
-
-                /* checks to see if LED and button pressed matches */
-                while(next)
+                
+                printf("j:%u\n\r", j);
+                /*turns on the LED depending on the array inputs in array */
+                k = 0;
+                while (k <= j && !SS)
                 {
-                  /*turns on the LED depending on the array inputs in array */
-                  if (colors[j] == 0) //if it is 0 light LED0
+                  printf("k: %u\n\r", k);
+                  if (colors[k] == 0) //if it is 0 light LED0
                   {
                     LED0 = 0;
                     Counts = 0;
-                    next = 0;
-                    while (Counts < on_time)
-                    {
-                      if (!PB1 && PB2 && PB3 && PB4) //if only PB1
-                      {
-                        points = points + j + 1;
-                        next = 1;
-                        break;
-                      }
-                      else
-                      {
-                        //Buzzer = 0;
-                        //Counts = 0;
-                        //while (Counts < 169);
-                        //Buzzer = 1;
-                      }
-                    }
+                    while (Counts < on_time){}
                     LED0 = 1;
                   }
-                  else if (colors[j] == 1) //if it is 1 light LED1
+                  else if (colors[k] == 1) //if it is 1 light LED1
                   {
                     LED1 = 0;
                     Counts = 0;
-                    next = 0;
-                    while (Counts < on_time)
-                    {
-                      if (PB1 && !PB2 && PB3 && PB4) //if only PB2
-                      {
-                        points = points + j + 1;
-                        next = 1;
-                        break;
-                      }
-                      else
-                      {
-                        //Buzzer = 0;
-                        //Counts = 0;
-                        //while (Counts < 169);
-                        //Buzzer = 1;
-                      }
-                    }
+                    while (Counts < on_time){}
                     LED1 = 1;
                   } 
-                  else if (colors[j] == 2) //if it is 2 light LED2
+                  else if (colors[k] == 2) //if it is 2 light LED2
                   {
                     LED2 = 0;
                     Counts = 0;
-                    next = 0;
-                    while (Counts < on_time)
-                    {
-                      if (PB1 && PB2 && !PB3 && PB4) //if only PB3
-                      {
-                        points = points + j + 1;
-                        next = 1;
-                        break;
-                      }
-                      else
-                      {
-                        //Buzzer = 0;
-                        //Counts = 0;
-                        //while (Counts < 169);
-                        //Buzzer = 1;
-                      }
-                    }
+                    while (Counts < on_time){}
                     LED2 = 1;
                   }
                   else 
                   {
                     LED3 = 0;
                     Counts = 0;
-                    next = 0;
-                    while (Counts < on_time)
-                    {
-                      if (PB1 && PB2 && PB3 && !PB4) //if PB4
-                      {
-                        points = points + j + 1;
-                        next = 1;
-                        break;
-                      }
-                      else
-                      {
-                        //Buzzer = 0;
-                        //Counts = 0;
-                        //while (Counts < 169);
-                        //Buzzer = 1;
-                      }
-                    }
+                    while (Counts < on_time){}
                     LED3 = 1;
                   }
-                  break;
 
+                  Counts = 0;
+                  while (Counts < off_time){}
+                  k++;
+                }
+                
+                if (SS)
+                {
+                  break;
                 }
 
-                //if Player gets answer wrong breaks out of FOR loop
+
+                /*checks for input */
+                k = 0;
+                while (k <= j && !SS)
+                {
+                  printf("k2:%u\n\r", k);
+                  /*wait for a button to be pressed */
+                  while(PB1 && PB2 && PB3 && PB4 && !SS);
+                  //store value of the button
+                  if( !PB1)
+                  {
+                    store = 0;
+                  }
+                  else if (!PB2)
+                  {
+                    store = 1;
+                  }
+                  else if (!PB3)
+                  {
+                    store = 2;
+                  }
+                  else if (!PB4)
+                  {
+                    store = 3;
+                  }
+                  printf("Stored value: %u\n\r", store);
+                  printf("Correct value: %u\n\r", colors[k]);
+
+                  /* wait for button to be released*/
+                  while ((!PB1 || !PB2 || !PB3 || !PB4) && !SS); 
+
+                  if (SS)
+                  {
+                    break;
+                  }
+                  /*checks input and if input matches last correct input, give the points.
+                  if wrong input break out of loop*/
+                  if (store == colors[k])
+                  {
+                    if (j==k)
+                    {
+                      points = points + j + 1;
+                    }
+                    next = 1;
+                    printf("correct!\n\r");
+                  }
+                  else
+                  {
+                    next = 0;
+                    printf("wrong!\n\r");
+                    break;
+                  }
+
+                  k++;
+                }
+
+                if (SS)
+                {
+                  next = 0;
+                  break;
+                }
+                /*waits for off_time*/
+                Counts = 0;
+                while (Counts < off_time){}
+
+                /*if there is a incorrect input then exit immediately*/
                 if (next == 0)
                 {
                   break;
                 }
-                
-                Counts = 0;
-                while (Counts < off_time){}
+
+                /* increment counter */
+                j++;
               }
 
               points_tracker[turns] = points_tracker[turns] + points;
+
               if (next == 1) //if player successfully gets all 10 of them right 
               {
                End_Won(turns);
@@ -263,6 +282,11 @@ void main(void)
               {
                End_Lost(turns);
               }
+
+              while(SS)
+              {
+                Blink_Pause();
+              } //while slide switch is still off wait until it is turned back on
               turns++; //next player's turn
             }
 
@@ -271,13 +295,17 @@ void main(void)
               rounds++; //next round
               turns = 0; //restarts with player one's turn
             }
-      }
+        }
       }
       else
       {
         if (rounds < 3) //if rounds < 3 and game already started
         {
           Blink_Pause(); /*BILED alternating red/green at frequency about 1 HZ */
+          LED0 = 1;
+          LED1 = 1;
+          LED2 = 1;
+          LED3 = 1;
           TR0 = 0;
           TR0 = 1;
           Counts = 0;
@@ -294,6 +322,7 @@ void main(void)
           points_tracker[0] = 0;
           points_tracker[1] = 0;
           points_tracker[2] = 0;
+          new = 1;
         }
       } 
       TR0 = 0; // turn timer off
@@ -317,8 +346,8 @@ void Port_Init(void)
 
   // Port 2
   P2MDOUT |= 0x40; //Set Port 2 output pins to push-pull mode
-  P2MDOUT &= 0xD5; //Set Port 2 input pins to open-drain
-  P2 |= ~0xD5; //Set Port 3 input pins to high impedance
+  P2MDOUT &= ~0x15; //Set Port 2 input pins to open-drain
+  P2 |= 0x15; //Set Port 3 input pins to high impedance
   //P2MDOUT |= 0x01; // set Port 2 output pins to push-pull mode
   //P2MDOUT &= 0xFE; //set Port 2 pin 1 to open drain mode or input 
   //P2 |= ~0xFE;  //set Port 2 input pins to high impedance
