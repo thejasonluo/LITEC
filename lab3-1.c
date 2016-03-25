@@ -42,17 +42,20 @@ void main(void)
 
     //print beginning message
     printf("Speed Control\r\n");
-    motor_pw = pw_neut;
-    servo_pw = pw_neut;
-    PCA0CP0 = 0xFFFF - servo_pw;
-    counts = 0;
-    while (counts < 50){} //wait one second
-    printf("set center\r\n");
+    motor_pw = pw_neut;         //intializes motor_pw as 1.5ms
+    servo_pw = pw_neut;         //intializes servo_pw as 1.5ms
+    PCA0CP0 = 0xFFFF - servo_pw;        //intiially centers the front wheels
+    counts = 0;         //reset counts
+    while (counts < 50){}       //wait one second
+    /*Let user determine the center*/
+    printf("set center by using R & L\r\n");
     PW_CENTER = next_function();
-    printf("\r\nset right\r\n");
+    /*Let users determine left most and right most limit of the wheels*/
+    printf("\r\nSet right limit by using R\r\n");
     PW_max = next_function();
-    printf("\r\nset left\r\n");
+    printf("\r\nSet left limit by using L \r\n");
     PW_min = next_function();
+    printf("\r\nUse S or F to control acceleration and R or L to control steering direction");
     while(1)
     {
         Drive_Motor();
