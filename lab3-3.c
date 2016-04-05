@@ -61,7 +61,7 @@ void main(void)
     while (counts < 50){}       //wait one second
     while(1)
     {
-        //Drive_Motor();
+        Drive_Motor();
         Steering_Servo();
     }
 }
@@ -70,9 +70,10 @@ void main(void)
 
 void Port_Init()
 {
-    P0MDOUT = 0x60;  //set output pin for SCL & SDA
-    P1MDOUT = 0x05;     //set output pin for CEX0 & CEX2
-    P3MDOUT = 0xC0;     //set output pin
+    P0MDOUT |= 0x60;  //set output pin for SCL & SDA
+    P1MDOUT |= 0x05;     //set output pin for CEX0 & CEX2
+    P3MDOUT |= 0xC0;     //set output pin
+    P3MDOUT &= ~0XC0;
 }
 
 void XBR0_Init()
@@ -109,7 +110,6 @@ void PCA_ISR ( void ) __interrupt 9
         r_count ++;
         if (r_count >= 4){
             new_range = 1;      //4 overflows is 80 ms
-            //printf("this goes through");
             r_count = 0;
         }
         h_count ++;
@@ -129,6 +129,7 @@ void PCA_ISR ( void ) __interrupt 9
 void Drive_Motor(){
     if (new_range){
         distance = Ranger();
+        //printf("SS1: %d\n\r", SS1);
         if (SS1 == 1){
             if (distance <= 10){     //if less than 10 cm
                 motor_pw = pw_max;      //full power forward
@@ -142,49 +143,56 @@ void Drive_Motor(){
             motor_pw = pw_neut;     //neutral
             //printf("motor_pw: %d", motor_pw);
             }
-            else if (distance > 10 && distance <= 40){      //if between 10-40
+            else if (distance > 10 && distance <= 40){      //if between 10-40cm
             motor_pw = 3748 - (distance*24.6);
             //printf("motor_pw: %d", motor_pw);
             }
-            else{       //if between 50-90
+            else{                                           //if between 50-90cm
             motor_pw = 3684 - (distance * 18.4);
             //printf("motor_pw: %d\n\r", motor_pw);
             }
+            PCA0CP2 = 0xFFFF - motor_pw;
+        }
+        else {
+            PCA0CP2 = 0xFFFF - pw_neut;                     //else goes to neutral
         }
     }
-    printf("motor_pw: %d\n\r", motor_pw);
-    PCA0CP2 = 0xFFFF - motor_pw;
 }
 
 void Steering_Servo()
 {
     unsigned char k;
     if(new_heading){
-        actual_heading = Compass();
-        printf("Actual heading: %d\n\r", actual_heading);
-        printf("Desired heading: %d\n\r", desired_heading);
-        error = desired_heading - actual_heading;
-        //printf("Error before: %d\n\r", error);
-        if (error < 0){
-            if (abs(error) > 1800){
-                error = (3600 - abs(error));
+        if (SS2 ==1){
+            actual_heading = Compass();
+            printf("Actual heading: %d\n\r", actual_heading);
+            printf("Desired heading: %d\n\r", desired_heading);
+            error = desired_heading - actual_heading;
+            //printf("Error before: %d\n\r", error);
+            if (error < 0){
+                if (abs(error) > 1800){
+                    error = (3600 - abs(error));
+                }
             }
-        }
-        else if (error > 1800){
-            error = error - 3600;
-            //printf("k");
-        }
-        printf("Error after: %d\n\r", error);
+            else if (error > 1800){
+                error = error - 3600;
+                //printf("k");
+            }
+            printf("Error after: %d\n\r", error);   
 
-        servo_pw = (error/2) + pw_neut;
-        if (servo_pw > pw_max){
-            servo_pw = pw_max;
+            k = 2;
+            servo_pw = (error/k) + pw_neut;
+            if (servo_pw > pw_max){
+                servo_pw = pw_max;
+            }
+            else if (servo_pw < pw_min){
+                servo_pw = pw_min;
+            }
+            PCA0CP0 = 0xFFFF - servo_pw;
         }
-        else if (servo_pw < pw_min){
-            servo_pw = pw_min;
+        else{
+            PCA0CP0 = 0xFFFF - pw_neut;
         }
-        //printf("servo_pw: %d\n\r", servo_pw);
-        PCA0CP0 = 0xFFFF - servo_pw;
     }
 }
 
@@ -203,7 +211,7 @@ unsigned int Ranger (void){
         Data[0] = 0x51;
         i2c_write_data(addr,0,Data,1); //write one byte to reg 0 at addr
 
-        printf("range: %d\r\n", range); //print range
+        //printf("range: %d\r\n", range); //print range
     }
     return range;
 }
@@ -215,7 +223,6 @@ unsigned int Compass(void){
         heading = ReadCompass();
         counter++;
         if (counter == 5){
-            //printf("heading: %d\r\n", heading);
             counter = 0;
         }
         new_heading = 0;
@@ -224,7 +231,7 @@ unsigned int Compass(void){
 }
 
 unsigned int ReadRanger(void){
-    unsigned char Data[2];
+    unsigned char Data[2];  //Data is an array with length of 2
     unsigned int range = 0;
     unsigned char addr=0xE0; //address of ranger is 0xE0
     i2c_read_data(addr,2,Data,2); //read two bytes, starting at reg 2
