@@ -46,7 +46,7 @@ unsigned char LCD_update;
 unsigned char voltage_count;
 unsigned char voltage_update;
 unsigned int volt;
-unsigned char STOP = 0;
+unsigned char STOP = 1;
 unsigned char turn = 0;
 
 
@@ -56,6 +56,7 @@ unsigned char new_range = 0;
 unsigned char new_heading = 0;
 unsigned char counter= 0;
 unsigned char distance;
+unsigned char rand1 = 0;
 
 __sbit __at 0xB6 SS1; // Slideswitch 1 connected to Port 3 Pin 6
 __sbit __at 0xB7 SS2; //Slideswitch 2 connected to Port 3 Pin 7
@@ -76,18 +77,19 @@ void main(void)
     motor_pw = pw_neut;         //intializes motor_pw as 1.5ms
     servo_pw = pw_neut;         //intializes servo_pw as 1.5ms
     PCA0CP0 = 0xFFFF - servo_pw;        //intiially centers the front wheels
+    PCA0CP2 = 0xFFFF - motor_pw;         //initially set speed to zero
     counts = 0;         //reset counts
     while (counts < 50){}       //wait one second
     Counts = 0;
     while (Counts < 1); // Wait a long time (1s) for keypad & LCD to initialize
     lcd_clear();
-    desired_heading = Set_Heading();
-    //desired_heading = 900;
-    //printf("desired heading: %d\n\r", (desired_heading / 10));
+    //desired_heading = Set_Heading();
+    desired_heading = 900;
+    printf("desired heading: %d\n\r", (desired_heading / 10));
     lcd_clear();
-    gain = Set_Gain();
-    //gain = 4;
-    //printf("desired gain: %d", gain);
+    //gain = Set_Gain();
+    gain = 2;
+    printf("desired gain: %d", gain);
     lcd_clear();
 
     AMX1SL = 0x05;
@@ -98,9 +100,12 @@ void main(void)
     {
         if (new_range){
             distance = Ranger();
-            //printf("distance: %d\n\r", distance);
-            
-            printf("TURN: %d\n\r", turn);
+
+            if (rand1 == 0){
+                pause(1000);
+                distance = Ranger();
+                rand1 = 1;
+            }
             if (distance < turn_dist && turn == 0){
                 desired_heading = desired_heading + 900;
                 if (desired_heading > 3599){
@@ -116,9 +121,10 @@ void main(void)
             else{
                 STOP = 0;
             }
+            
             Drive_Motor();
-            new_range = 0;
             Steering_Servo();
+            new_range = 0;
         }
 
         /*UPDATES LCD DISPLAY*/
@@ -126,7 +132,7 @@ void main(void)
             volt = Read_Battery();
             lcd_clear();
             lcd_print("Range:%d\nHeading:%d\nVoltage:%dmV", distance, actual_heading, volt);
-
+            printf("%d,%d,%d\n\r", actual_heading, error,motor_pw);
             LCD_update = 0;
         }
     }
@@ -309,7 +315,7 @@ void Steering_Servo()
                 error = error + 3600;
             }
 
-            servo_pw = (error/gain) + pw_neut;
+            servo_pw = (error*gain) + pw_neut;
             if (servo_pw > pw_max){
                 servo_pw = pw_max;
             }
@@ -391,28 +397,4 @@ unsigned int Read_Battery(void){
     unsigned int val;
     val = read_AD_input(4);
     return val*8.63;
-}
-
-int Update_Value(int Constant, unsigned char incr, int maxval, int minval){
-    int deflt;
-    char input;
-    // 'c' - default, 'i' - increment, 'd' - decrement, 'u' - update and return
-    deflt = Constant;
-    while(1){
-        input = getchar();
-        if (input == 'c') {Constant = deflt;}
-        if (input == 'i'){
-            Constant += incr;
-            if (Constant > maxval) {Constant = maxval;}
-        }
-        if (input == 'd'){
-            Constant -= incr;
-            if (Constant < minval) {
-                Constant = minval;
-            }
-        }
-        if (input == 'u'){ 
-            return Constant;
-        }
-    }
 }
