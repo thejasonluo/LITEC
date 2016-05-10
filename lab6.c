@@ -3,9 +3,8 @@
 	Side: B
 	Date: 4/25/16
  
-	File name: Lab 3-3
-	Description: Reads from the ultrasonic ranger and electric compass using I2C
-	and sets motor speed and servo position using PWM.
+	File name: Lab 6
+	Description: 
  */
 
 #include <c8051_SDCC.h>
